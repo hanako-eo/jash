@@ -1,0 +1,10 @@
+[package]
+name = "jash"
+version = "0.1.0-alpha"
+edition = "2021"
+description = "Just a shell"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+colored = "2.0.0"
