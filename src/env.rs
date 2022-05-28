@@ -20,6 +20,10 @@ impl Variables {
     vars
   }
 
+  pub fn gets(&self) -> HashMap<String, String> {
+    self.base.clone()
+  }
+
   pub fn contains_key(&self, key: String) -> bool {
     self.base.contains_key(&key)
   }

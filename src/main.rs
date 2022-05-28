@@ -4,13 +4,14 @@ mod io;
 mod parser;
 
 use std::path::PathBuf;
+use std::process::Command;
 
 use args::Args;
 use env::Variables;
 
 fn main() {
   let mut vars = Variables::new();
-  let pwd_path = PathBuf::from(vars.get("PWD".to_string()).unwrap_or(&"/".to_string()));
+  let mut pwd_path = PathBuf::from(vars.get("PWD".to_string()).unwrap_or(&"/".to_string()));
 
   vars.set("PS1".to_string(), "\x1b[1;34m\\w\x1b[0m $\n> ".to_string());
 
@@ -23,19 +24,28 @@ fn main() {
   let home = env::get("HOME");
 
   loop {
-    let pwd = pwd_path.to_str().unwrap();
-    let pwd = if pwd.starts_with(&home) {
-      pwd.replacen(&home, "~", 1)
+    let full_pwd = pwd_path.to_str().unwrap();
+    let pwd = if full_pwd.starts_with(&home) {
+      full_pwd.replacen(&home, "~", 1)
     } else {
-      pwd.to_string()
+      full_pwd.to_string()
     };
 
-    let current_folder = pwd_path.file_name().unwrap().to_str().unwrap();
+    let current_folder = match pwd_path.file_name() {
+      Some(name) => name.to_str().unwrap(),
+      None => "/"
+    };
     let ps1 = env::get("PS1")
       .replace(r"\u", username)
       .replace(r"\h", hn)
+      .replace(r"\y", &full_pwd)
+      .replace(r"\Y", &current_folder)
       .replace(r"\w", &pwd)
-      .replace(r"\W", current_folder);
+      .replace(r"\W", if &pwd == "~" {
+        &"~"
+      } else {
+        &current_folder
+      });
 
     let value = input!("{}", ps1);
     let command = value.trim().to_string();
@@ -44,6 +54,31 @@ fn main() {
     }
 
     let program = Args::from_str(command);
-    println!("{:?}", program);
+    if let Some(path) = program.path {
+      let r = Command::new(path)
+        .args(program.args)
+        .env_clear()
+        .envs(vars.gets())
+        .current_dir(full_pwd)
+        .spawn();
+
+      if let Ok(mut process) = r {
+        vars.set("?".to_string(), match process.wait() {
+          Ok(status) => status.code().unwrap_or(1).to_string(),
+          Err(_) => "1".to_string()
+        });
+      }
+    } else if program.program == "cd" {
+      if let Some(dest) = program.args.get(0) {
+        if dest.starts_with("/") {
+          pwd_path.clear();
+        }
+        pwd_path.push(dest);
+      } else {
+        pwd_path.clear();
+        pwd_path.push(&home);
+      }
+      pwd_path = pwd_path.canonicalize().unwrap();
+    }
   }
 }
