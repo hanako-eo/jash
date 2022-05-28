@@ -1,4 +1,3 @@
-
 #[macro_export]
 macro_rules! input {
   () => {
@@ -6,7 +5,7 @@ macro_rules! input {
   };
   ($($arg:tt)*) => {{
     use std::io::Write;
-    
+
     let input = std::io::stdin();
     let mut output = std::io::stdout();
 

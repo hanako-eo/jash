@@ -8,3 +8,5 @@ description = "Just a shell"
 
 [dependencies]
 colored = "2.0.0"
+users = "0.11.0"
+hostname = "0.3.1"
