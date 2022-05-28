@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::env;
+
 pub struct Variables {
   base: HashMap<String, String>
 }
@@ -44,4 +45,8 @@ impl Variables {
   pub fn len(&mut self) -> usize {
     self.base.len()
   }
+}
+
+pub fn get(key: &str) -> String {
+  env::var(key).unwrap_or_default()
 }

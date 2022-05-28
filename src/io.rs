@@ -1,3 +1,8 @@
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
+
+use crate::env;
+
 #[macro_export]
 macro_rules! input {
   () => {
@@ -16,4 +21,28 @@ macro_rules! input {
     let _ = input.read_line(&mut buffer);
     buffer
   }};
+}
+
+pub fn which<P: ?Sized + AsRef<Path>>(program: &P) -> Option<String> {
+  for mut folder in env::get("PATH")
+    .split(":")
+    .map(|x| PathBuf::from_str(x).unwrap())
+  {
+    folder.push(program.clone());
+    if folder.exists() && folder.is_file() {
+      return Some(folder.to_str().unwrap().to_string())
+    }
+  }
+  None
+}
+
+#[test]
+fn which_correct_link() {
+  assert_eq!(which("cat"), Some("/usr/bin/cat".to_string()));
+  assert_eq!(which("ls"), Some("/usr/bin/ls".to_string()));
+  assert_eq!(which("sh"), Some("/usr/bin/sh".to_string()));
+
+  assert_eq!(which("cd"), None);
+  assert_eq!(which("ll"), None);
+  assert_eq!(which("fg"), None);
 }
