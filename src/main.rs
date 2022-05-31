@@ -7,13 +7,12 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use args::Args;
-use env::Variables;
+use env::vars;
 
 fn main() {
-  let mut vars = Variables::new();
-  let mut pwd_path = PathBuf::from(vars.get("PWD".to_string()).unwrap_or(&"/".to_string()));
+  let mut pwd_path = PathBuf::from(vars::get("PWD"));
 
-  vars.set("PS1".to_string(), "\x1b[1;34m\\w\x1b[0m $\n> ".to_string());
+  vars::set("PS1", "\x1b[1;34m\\w\x1b[0m $\n> ");
 
   let hn = hostname::get().unwrap();
   let hn = hn.to_str().unwrap_or("pc");
@@ -21,7 +20,7 @@ fn main() {
   let username = users::get_current_username().unwrap();
   let username = username.to_str().unwrap();
 
-  let home = env::get("HOME");
+  let home = vars::get("HOME");
 
   loop {
     let full_pwd = pwd_path.to_str().unwrap();
@@ -35,17 +34,13 @@ fn main() {
       Some(name) => name.to_str().unwrap(),
       None => "/"
     };
-    let ps1 = env::get("PS1")
+    let ps1 = vars::get("PS1")
       .replace(r"\u", username)
       .replace(r"\h", hn)
       .replace(r"\y", &full_pwd)
       .replace(r"\Y", &current_folder)
       .replace(r"\w", &pwd)
-      .replace(r"\W", if &pwd == "~" {
-        &"~"
-      } else {
-        &current_folder
-      });
+      .replace(r"\W", if &pwd == "~" { &"~" } else { &current_folder });
 
     let value = input!("{}", ps1);
     let command = value.trim().to_string();
@@ -58,12 +53,12 @@ fn main() {
       let r = Command::new(path)
         .args(program.args)
         .env_clear()
-        .envs(vars.gets())
+        .envs(vars::all())
         .current_dir(full_pwd)
         .spawn();
 
       if let Ok(mut process) = r {
-        vars.set("?".to_string(), match process.wait() {
+        vars::set("?", match process.wait() {
           Ok(status) => status.code().unwrap_or(1).to_string(),
           Err(_) => "1".to_string()
         });

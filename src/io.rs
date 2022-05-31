@@ -24,7 +24,7 @@ macro_rules! input {
 }
 
 pub fn which<P: ?Sized + AsRef<Path>>(program: &P) -> Option<String> {
-  for mut folder in env::get("PATH")
+  for mut folder in env::vars::get("PATH")
     .split(":")
     .map(|x| PathBuf::from_str(x).unwrap())
   {
