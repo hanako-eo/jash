@@ -10,7 +10,7 @@ use args::Args;
 use env::vars;
 
 fn main() {
-  let mut pwd_path = PathBuf::from(vars::get("PWD"));
+  let mut pwd_path = PathBuf::from(vars::get_result("PWD").unwrap_or("/".to_string()));
 
   vars::set("PS1", "\x1b[1;34m\\w\x1b[0m $\n> ");
 

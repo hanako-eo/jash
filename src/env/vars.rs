@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::env;
+use std::env::{self, VarError};
 use std::ffi::OsStr;
 
 pub fn all() -> HashMap<String, String> {
@@ -11,6 +11,13 @@ where
   S: AsRef<OsStr>
 {
   env::var(key).unwrap_or_default()
+}
+
+pub fn get_result<S>(key: S) -> Result<String, VarError>
+where
+  S: AsRef<OsStr>
+{
+  env::var(key)
 }
 
 pub fn set<S, S2>(key: S, value: S2)
