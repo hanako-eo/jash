@@ -20,6 +20,18 @@ where
   env::var(key)
 }
 
+pub fn create<S, S2>(key: S, value: S2) -> bool
+where
+  S: AsRef<OsStr>,
+  S2: AsRef<OsStr>
+{
+  let has = contains(&key);
+  if !has {
+    set(key, value);
+  }
+  !has
+}
+
 pub fn set<S, S2>(key: S, value: S2)
 where
   S: AsRef<OsStr>,
