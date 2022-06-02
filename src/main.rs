@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use args::Args;
-use builtin::{BuiltIn, CD};
+use builtin::{BuiltIn, CD, Exit};
 use env::{system, vars};
 
 #[derive(Debug)]
@@ -26,6 +26,7 @@ impl App {
     let work_dir = PathBuf::from(&vars::get_result("PWD").unwrap_or("/".to_string()));
 
     built_ins.insert("cd", Box::new(CD::new()));
+    built_ins.insert("exit", Box::new(Exit::new()));
 
     Self {
       built_ins,
