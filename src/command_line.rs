@@ -2,23 +2,23 @@ use crate::io::which;
 use crate::parser::{Lexer, TokenKind};
 
 #[derive(Debug, Default)]
-pub struct Args {
+pub struct CommandLine {
   pub path: Option<String>,
-  pub program: String,
+  pub command: String,
   pub args: Vec<String>
 }
 
-impl Args {
-  pub fn from_str(command: String) -> Args {
-    let mut args = Args::default();
+impl CommandLine {
+  pub fn from_str(command: String) -> CommandLine {
+    let mut args = CommandLine::default();
     for token in Lexer::init(command) {
       let value = match token.kind {
         TokenKind::ID(value) | TokenKind::String(value) => value,
         _ => String::new()
       };
-      if args.program.is_empty() {
+      if args.command.is_empty() {
         args.path = which(&value);
-        args.program = value;
+        args.command = value;
       } else {
         args.args.push(value);
       }

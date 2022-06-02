@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use crate::command_line::CommandLine;
 use crate::env::vars;
 
 use super::BuiltIn;
@@ -14,11 +15,11 @@ impl CD {
 }
 
 impl BuiltIn for CD {
-  fn handler(&self, work_dir: &mut PathBuf, args: &Vec<String>) -> i8 {
-    let prev_work_dir = vars::get_result("OLDPWD").ok();
+  fn handler(&mut self, command_line: CommandLine) -> i8 {
     let home = vars::get("HOME");
-    vars::set("OLDPWD", work_dir.to_str().unwrap());
-    if let Some(dest) = args.get(0) {
+    let mut work_dir = PathBuf::from(vars::get_result("PWD").unwrap_or(home.clone()));
+    let prev_work_dir = vars::get_result("OLDPWD").ok();
+    if let Some(dest) = command_line.args.get(0) {
       let dest = if dest.starts_with("~") {
         dest.replacen("~", &home, 1)
       } else {
@@ -39,20 +40,23 @@ impl BuiltIn for CD {
         }
         work_dir.push(dest);
       }
-    } else if args.len() == 0 {
+    } else if command_line.args.len() == 0 {
       work_dir.clear();
       work_dir.push(&home);
     } else {
       eprintln!("cd: too many args");
       return 1
     }
-    *work_dir = match work_dir.canonicalize() {
-      Ok(nwd) => nwd,
+    match work_dir.canonicalize() {
+      Ok(nwd) => {
+        vars::set("OLDPWD", work_dir.to_str().unwrap());
+        vars::set("PWD", nwd.to_str().unwrap_or(&home));
+        0
+      },
       Err(e) => {
         eprintln!("{}", e);
-        return 1
+        1
       }
-    };
-    0
+    }
   }
 }

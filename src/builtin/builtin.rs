@@ -1,8 +1,9 @@
 use std::fmt::Debug;
-use std::path::PathBuf;
+
+use crate::command_line::CommandLine;
 
 pub trait BuiltIn: Debug {
-  fn handler(&self, work_dir: &mut PathBuf, args: &Vec<String>) -> i8 {
+  fn handler(&mut self, _command_line: CommandLine) -> i8 {
     eprintln!("jash: command not implemented");
 
     1

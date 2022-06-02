@@ -1,5 +1,5 @@
-mod args;
 mod builtin;
+mod command_line;
 mod env;
 mod io;
 mod parser;
@@ -8,13 +8,12 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
 
-use args::Args;
-use builtin::{BuiltIn, CD, Exit};
+use builtin::{BuiltIn, Exit, CD};
+use command_line::CommandLine;
 use env::{system, vars};
 
 #[derive(Debug)]
 struct App {
-  work_dir: PathBuf,
   built_ins: HashMap<&'static str, Box<dyn BuiltIn>>
 }
 
@@ -23,28 +22,27 @@ impl App {
     vars::create("PS1", "\x1b[1;34m\\w\x1b[0m $\n> ");
 
     let mut built_ins: HashMap<&str, Box<dyn BuiltIn>> = HashMap::new();
-    let work_dir = PathBuf::from(&vars::get_result("PWD").unwrap_or("/".to_string()));
 
     built_ins.insert("cd", Box::new(CD::new()));
     built_ins.insert("exit", Box::new(Exit::new()));
 
     Self {
-      built_ins,
-      work_dir
+      built_ins
     }
   }
 
   fn ps1(&self) -> String {
     let home = vars::get("HOME");
-    let cwd = self.work_dir.to_str().unwrap_or(&home);
+    let cwd = vars::get("PWD");
 
     let pwd = if cwd.starts_with(&home) {
       cwd.replacen(&home, "~", 1)
     } else {
-      cwd.to_string()
+      cwd.clone()
     };
 
-    let current_folder = match self.work_dir.file_name() {
+    let work_path = PathBuf::from(&cwd);
+    let current_folder = match work_path.file_name() {
       Some(name) => name.to_str().unwrap(),
       None => "/"
     };
@@ -58,13 +56,13 @@ impl App {
       .replace(r"\W", if &pwd == "~" { &"~" } else { &current_folder })
   }
 
-  fn execute(&mut self, command_line: Args) -> i8 {
+  fn execute(&mut self, command_line: CommandLine) -> i8 {
     if let Some(command_path) = command_line.path {
       let r = Command::new(command_path)
         .args(&command_line.args)
         .env_clear()
         .envs(vars::all())
-        .current_dir(&self.work_dir)
+        .current_dir(vars::get("PWD"))
         .spawn();
 
       if let Ok(mut process) = r {
@@ -74,9 +72,9 @@ impl App {
         }
       }
     } else {
-      for (command, built_in) in &self.built_ins {
-        if command == &command_line.program {
-          return built_in.handler(&mut self.work_dir, &command_line.args)
+      for (command, built_in) in &mut self.built_ins {
+        if command == &command_line.command {
+          return built_in.handler(command_line)
         }
       }
     }
@@ -94,7 +92,7 @@ fn main() {
       continue
     }
 
-    let code = app.execute(Args::from_str(command_line));
+    let code = app.execute(CommandLine::from_str(command_line));
     vars::set("?", code.to_string());
   }
 }

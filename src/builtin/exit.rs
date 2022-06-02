@@ -1,7 +1,6 @@
-use std::path::PathBuf;
 use std::process;
 
-use crate::env::vars;
+use crate::command_line::CommandLine;
 
 use super::BuiltIn;
 
@@ -15,7 +14,7 @@ impl Exit {
 }
 
 impl BuiltIn for Exit {
-  fn handler(&self, work_dir: &mut PathBuf, args: &Vec<String>) -> i8 {
+  fn handler(&mut self, _: CommandLine) -> i8 {
     process::exit(0)
   }
 }
