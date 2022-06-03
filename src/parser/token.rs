@@ -2,7 +2,9 @@
 pub enum TokenKind {
   ID(String),
   String(String),  // ""
-  Comment(String)  // #
+  Comment(String),  // #
+  AND,
+  OR
 }
 
 #[derive(Debug)]

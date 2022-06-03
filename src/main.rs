@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use builtin::{BuiltIn, Exit, CD, PWD};
-use command_line::CommandLine;
+use command_line::{CommandLine, CommandModifier};
 use env::{system, vars};
 
 #[derive(Debug)]
@@ -57,29 +57,54 @@ impl App {
       .replace(r"\W", if &pwd == "~" { &"~" } else { &current_folder })
   }
 
-  fn execute(&mut self, command_line: CommandLine) -> i8 {
-    if let Some(command_path) = command_line.path {
-      let r = Command::new(command_path)
-        .args(&command_line.args)
-        .env_clear()
-        .envs(vars::all())
-        .current_dir(vars::get("PWD"))
-        .spawn();
-
-      if let Ok(mut process) = r {
-        return match process.wait() {
-          Ok(status) => status.code().unwrap_or(1) as i8,
-          Err(_) => 127
-        }
-      }
+  fn execute(&mut self, command_line: &CommandLine) -> i8 {
+    if let Some(path) = command_line.path() {
+      return self.exec_process(command_line, path)
     } else {
       for (command, built_in) in &mut self.built_ins {
-        if command == &command_line.command {
+        if command == &command_line.command() {
           return built_in.handler(command_line)
         }
       }
     }
     127
+  }
+  
+  fn exec_process(&mut self, command_line: &CommandLine, path: String) -> i8 {
+    let r = Command::new(path)
+      .args(command_line.args())
+      .env_clear()
+      .envs(vars::all())
+      .current_dir(vars::get("PWD"))
+      .spawn();
+  
+    if let Ok(mut process) = r {
+      return match process.wait() {
+        Ok(status) =>{
+          let code = status.code().unwrap_or(1) as i8;
+          match command_line.modifier() {
+            CommandModifier::And(next_command) => {
+              return if code == 0 {
+                 self.execute(next_command.as_ref())
+              } else {
+                code
+              }
+            },
+            CommandModifier::Or(next_command) => {
+              return if code > 0 {
+                 self.execute(next_command.as_ref())
+              } else {
+                code
+              }
+            },
+            CommandModifier::None => code
+          }
+          
+        },
+        Err(_) => 127
+      }
+    }
+    0
   }
 }
 
@@ -93,7 +118,7 @@ fn main() {
       continue
     }
 
-    let code = app.execute(CommandLine::from_str(command_line));
+    let code = app.execute(&CommandLine::new(command_line));
     vars::set("?", code.to_string());
   }
 }

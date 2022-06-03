@@ -1,3 +1,5 @@
+use std::process;
+
 use super::{Token, TokenKind};
 
 pub struct Lexer {
@@ -53,6 +55,17 @@ impl Lexer {
       }
     }
     true
+  }
+
+  pub fn peek(&self, offset: usize) -> String {
+    let i = self.i + 1;
+    let chars = self.content[i..std::cmp::min(i + offset, self.content.len())].into_iter();
+    String::from_iter(chars)
+  }
+
+  pub fn skip_with_token(&mut self, gap: u8, token: Token) -> Token {
+    self.skip(gap + 1);
+    token
   }
 
   pub fn is_id_valid(&self) -> bool {
@@ -122,8 +135,25 @@ impl Iterator for Lexer {
         return Some(self.collect_string(self.c))
       }
 
+      let peek = self.peek(1);
+
+      let column = self.current_column;
+      let line = self.current_line;
       match self.c {
         '#' => return Some(self.collect_comment()),
+        '|' => {
+          if peek == "|" {
+            return Some(self.skip_with_token(1, Token::init(TokenKind::OR, line, column, 2)))
+          }
+
+          process::exit(1);
+        },
+        '&' => {
+          if peek == "&" {
+            return Some(self.skip_with_token(1, Token::init(TokenKind::AND, line, column, 2)))
+          }
+          process::exit(1);
+        },
         '\0' => return None,
         _ => return Some(self.collect_id())
       }

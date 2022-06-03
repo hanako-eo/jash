@@ -2,27 +2,61 @@ use crate::io::which;
 use crate::parser::{Lexer, TokenKind};
 
 #[derive(Debug, Default)]
+pub enum CommandModifier {
+  And(Box<CommandLine>),
+  Or(Box<CommandLine>),
+  
+  #[default]
+  None
+}
+
+#[derive(Debug, Default)]
 pub struct CommandLine {
-  pub path: Option<String>,
-  pub command: String,
-  pub args: Vec<String>
+  command: String,
+  args: Vec<String>,
+  modifier: CommandModifier
 }
 
 impl CommandLine {
-  pub fn from_str(command: String) -> CommandLine {
-    let mut args = CommandLine::default();
-    for token in Lexer::init(command) {
-      let value = match token.kind {
-        TokenKind::ID(value) | TokenKind::String(value) => value,
-        _ => String::new()
-      };
-      if args.command.is_empty() {
-        args.path = which(&value);
-        args.command = value;
-      } else {
-        args.args.push(value);
+  pub fn new(command: String) -> Self {
+    let mut iter = Lexer::init(command);
+    Self::from_lexer(&mut iter)
+  }
+  
+  fn from_lexer(iter: &mut Lexer) -> Self {
+    let mut command_line = CommandLine::default();
+    while let Some(token) = iter.next() {
+      match token.kind {
+        TokenKind::ID(value) | TokenKind::String(value) => {
+          if command_line.command.is_empty() {
+            command_line.command = value;
+          } else {
+            command_line.args.push(value);
+          }
+        },
+        TokenKind::AND => {
+          command_line.modifier = CommandModifier::And(Box::new(Self::from_lexer(iter)));
+        },
+        TokenKind::OR => {
+          command_line.modifier = CommandModifier::Or(Box::new(Self::from_lexer(iter)));
+        }
+        _ =>()
       }
     }
-    args
+    command_line
+  }
+  
+  pub fn path(&self) -> Option<String> {
+    which(&self.command)
+  }
+
+  pub fn args(&self) -> &Vec<String> {
+    &self.args
+  }
+  pub fn command(&self) -> &String {
+    &self.command
+  }
+  pub fn modifier(&self) -> &CommandModifier {
+    &self.modifier
   }
 }

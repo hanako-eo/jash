@@ -13,9 +13,9 @@ impl PWD {
 }
 
 impl BuiltIn for PWD {
-  fn handler(&mut self, _: CommandLine) -> i8 {
+  fn handler(&mut self, _: &CommandLine) -> i8 {
     println!("{}", vars::get("PWD"));
-    
+
     0
   }
 }

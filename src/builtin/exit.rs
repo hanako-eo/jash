@@ -14,7 +14,7 @@ impl Exit {
 }
 
 impl BuiltIn for Exit {
-  fn handler(&mut self, _: CommandLine) -> i8 {
+  fn handler(&mut self, _: &CommandLine) -> i8 {
     process::exit(0)
   }
 }
