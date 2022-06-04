@@ -1,6 +1,7 @@
 #[derive(Debug, PartialEq)]
 pub enum TokenKind {
   ID(String),
+  VAR(String),
   String(String),  // ""
   Comment(String), // #
   AND,             // &&

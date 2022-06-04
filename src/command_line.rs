@@ -1,3 +1,4 @@
+use crate::env::vars;
 use crate::io::which;
 use crate::parser::{Lexer, TokenKind};
 
@@ -29,6 +30,12 @@ impl CommandLine {
     let mut command_line = CommandLine::default();
     while let Some(token) = iter.next() {
       match token.kind {
+        TokenKind::VAR(name) => 
+          if command_line.is_empty() {
+            command_line.command = vars::get(name);
+          } else {
+            command_line.args.push(vars::get(name));
+          },
         TokenKind::ID(value) | TokenKind::String(value) =>
           if command_line.is_empty() {
             command_line.command = value;

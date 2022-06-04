@@ -87,6 +87,23 @@ impl Lexer {
     Token::init(TokenKind::ID(value.clone()), line, column, value.len())
   }
 
+  pub fn collect_variable(&mut self) -> Token {
+    let mut value = String::new();
+    let column = self.current_column;
+    let line = self.current_line;
+    let mut first = true;
+    self.skip(1);
+
+    while core::mem::replace(&mut first, false) || self.c.is_alphanumeric() && self.c != '\0' {
+      value += &self.c.to_string();
+      if !self.skip(1) {
+        break
+      }
+    }
+
+    Token::init(TokenKind::VAR(value.clone()), line, column, value.len())
+  }
+
   pub fn collect_comment(&mut self) -> Token {
     let mut value = String::new();
     let column = self.current_column;
@@ -140,6 +157,7 @@ impl Iterator for Lexer {
       let column = self.current_column;
       let line = self.current_line;
       match self.c {
+        '$' => return Some(self.collect_variable()),
         '#' => return Some(self.collect_comment()),
         ';' => return Some(self.skip_with_token(1, Token::init(TokenKind::Then, line, column, 1))),
         '|' => {
