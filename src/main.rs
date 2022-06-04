@@ -6,7 +6,7 @@ mod parser;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, self};
 
 use builtin::vars::{Export, UnSet};
 use builtin::{BuiltIn, Exit, CD, PWD};
@@ -21,6 +21,7 @@ struct App {
 impl App {
   fn new() -> Self {
     vars::create("PS1", "\x1b[1;34m\\w\x1b[0m $\n> ");
+    vars::set("$", process::id().to_string());
 
     let mut built_ins: HashMap<&str, Box<dyn BuiltIn>> = HashMap::new();
 
@@ -61,6 +62,10 @@ impl App {
   }
 
   fn execute(&mut self, command_line: &CommandLine) -> i8 {
+    if command_line.is_empty(){
+      return vars::get("?").parse().unwrap_or(0) as i8
+    }
+
     if let Some(path) = command_line.path() {
       return self.exec_process(command_line, path)
     } else {
