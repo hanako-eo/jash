@@ -2,9 +2,11 @@
 pub enum TokenKind {
   ID(String),
   String(String),  // ""
-  Comment(String),  // #
-  AND,
-  OR
+  Comment(String), // #
+  AND,             // &&
+  OR,              // ||
+  Then,            // ;
+  Ampersand        // &
 }
 
 #[derive(Debug)]

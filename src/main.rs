@@ -67,9 +67,10 @@ impl App {
         }
       }
     }
+    eprintln!("{}: command not found", command_line.command());
     127
   }
-  
+
   fn exec_process(&mut self, command_line: &CommandLine, path: String) -> i8 {
     let r = Command::new(path)
       .args(command_line.args())
@@ -77,31 +78,36 @@ impl App {
       .envs(vars::all())
       .current_dir(vars::get("PWD"))
       .spawn();
-  
+
     if let Ok(mut process) = r {
-      return match process.wait() {
-        Ok(status) =>{
-          let code = status.code().unwrap_or(1) as i8;
-          match command_line.modifier() {
-            CommandModifier::And(next_command) => {
-              return if code == 0 {
-                 self.execute(next_command.as_ref())
-              } else {
-                code
-              }
-            },
-            CommandModifier::Or(next_command) => {
-              return if code > 0 {
-                 self.execute(next_command.as_ref())
-              } else {
-                code
-              }
-            },
-            CommandModifier::None => code
-          }
-          
-        },
-        Err(_) => 127
+      if let CommandModifier::Background(next) = command_line.modifier() {
+        match next {
+          Some(next_command) => return self.execute(next_command.as_ref()),
+          None => ()
+        };
+      } else {
+        return match process.wait() {
+          Ok(status) => {
+            let code = status.code().unwrap_or(1) as i8;
+            match command_line.modifier() {
+              CommandModifier::And(next_command) =>
+                return if code == 0 {
+                  self.execute(next_command.as_ref())
+                } else {
+                  code
+                },
+              CommandModifier::Or(next_command) =>
+                return if code > 0 {
+                  self.execute(next_command.as_ref())
+                } else {
+                  code
+                },
+              CommandModifier::Then(next_command) => self.execute(next_command.as_ref()),
+              _ => code
+            }
+          },
+          Err(_) => 127
+        }
       }
     }
     0

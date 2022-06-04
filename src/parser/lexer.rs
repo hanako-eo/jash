@@ -141,6 +141,7 @@ impl Iterator for Lexer {
       let line = self.current_line;
       match self.c {
         '#' => return Some(self.collect_comment()),
+        ';' => return Some(self.skip_with_token(1, Token::init(TokenKind::Then, line, column, 1))),
         '|' => {
           if peek == "|" {
             return Some(self.skip_with_token(1, Token::init(TokenKind::OR, line, column, 2)))
@@ -152,7 +153,7 @@ impl Iterator for Lexer {
           if peek == "&" {
             return Some(self.skip_with_token(1, Token::init(TokenKind::AND, line, column, 2)))
           }
-          process::exit(1);
+          return Some(self.skip_with_token(1, Token::init(TokenKind::Ampersand, line, column, 1)))
         },
         '\0' => return None,
         _ => return Some(self.collect_id())
