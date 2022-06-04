@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
 
+use builtin::vars::{Export, UnSet};
 use builtin::{BuiltIn, Exit, CD, PWD};
 use command_line::{CommandLine, CommandModifier};
 use env::{system, vars};
@@ -25,7 +26,9 @@ impl App {
 
     built_ins.insert("cd", Box::new(CD::new()));
     built_ins.insert("exit", Box::new(Exit::new()));
+    built_ins.insert("export", Box::new(Export::new()));
     built_ins.insert("pwd", Box::new(PWD::new()));
+    built_ins.insert("unset", Box::new(UnSet::new()));
 
     Self {
       built_ins

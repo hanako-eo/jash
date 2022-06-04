@@ -2,6 +2,7 @@ mod builtin;
 mod cd;
 mod exit;
 mod pwd;
+pub mod vars;
 
 pub use builtin::BuiltIn;
 pub use cd::CD;
