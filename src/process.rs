@@ -9,14 +9,15 @@ use nix::unistd::Pid;
 use crate::command_line::CommandLine;
 use crate::env::vars;
 
-pub struct Process<'a> {
+#[derive(Debug, Clone)]
+pub struct Process {
   id: u32,
-  command_line: &'a CommandLine,
+  command_line: CommandLine,
   envs: HashMap<String, String>
 }
 
-impl<'a> Process<'a> {
-  pub fn new(command_line: &'a CommandLine) -> Self {
+impl Process {
+  pub fn new(command_line: CommandLine) -> Self {
     Self {
       id: 0,
       command_line,
@@ -82,6 +83,11 @@ impl<'a> Process<'a> {
   pub fn id(&self) -> u32 {
     self.id
   }
+
+  pub fn command(&self) -> &String {
+    &self.command_line.line
+  }
+
 }
 
 // fn p() {

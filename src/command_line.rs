@@ -1,8 +1,9 @@
 use crate::env::vars;
 use crate::io::which;
 use crate::parser::{Lexer, TokenKind};
+use crate::process::Process;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub enum CommandModifier {
   And(Box<CommandLine>),
   Or(Box<CommandLine>),
@@ -13,11 +14,12 @@ pub enum CommandModifier {
   None
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct CommandLine {
   command: String,
   args: Vec<String>,
-  modifier: CommandModifier
+  modifier: CommandModifier,
+  pub line: String
 }
 
 impl CommandLine {
@@ -30,18 +32,24 @@ impl CommandLine {
     let mut command_line = CommandLine::default();
     while let Some(token) = iter.next() {
       match token.kind {
-        TokenKind::VAR(name) =>
+        TokenKind::VAR(name) =>{
+          let value = vars::get(name);
           if command_line.is_empty() {
-            command_line.command = vars::get(name);
+            command_line.command = value.clone();
+            command_line.line.push_str(value.as_str());
           } else {
-            command_line.args.push(vars::get(name));
-          },
+            command_line.args.push(value.clone());
+            command_line.line.push_str(format!(" {}", value).as_str());
+          }
+        },
         TokenKind::ID(value) | TokenKind::String(value) =>
-          if command_line.is_empty() {
-            command_line.command = value;
-          } else {
-            command_line.args.push(value);
-          },
+        if command_line.is_empty() {
+          command_line.command = value.clone();
+          command_line.line.push_str(value.as_str());
+        } else {
+          command_line.args.push(value.clone());
+          command_line.line.push_str(format!(" {}", value).as_str());
+        },
         TokenKind::AND => {
           command_line.modifier = CommandModifier::And(Box::new(Self::from_lexer(iter)));
         },
@@ -58,11 +66,16 @@ impl CommandLine {
           } else {
             None
           });
+          command_line.line.push_str(" &");
         },
         _ => ()
       }
     }
     command_line
+  }
+
+  pub fn to_process(&self) -> Process {
+    Process::new(self.clone())
   }
 
   pub fn path(&self) -> Option<String> {
