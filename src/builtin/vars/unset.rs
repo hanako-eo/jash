@@ -12,7 +12,7 @@ impl UnSet {
 }
 
 impl BuiltIn for UnSet {
-  fn handler(&mut self, command_line: &CommandLine) -> i8 {
+  fn handler(&mut self, command_line: &CommandLine) -> u8 {
     for key in command_line.args() {
       vars::remove(key);
     }

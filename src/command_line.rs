@@ -30,7 +30,7 @@ impl CommandLine {
     let mut command_line = CommandLine::default();
     while let Some(token) = iter.next() {
       match token.kind {
-        TokenKind::VAR(name) => 
+        TokenKind::VAR(name) =>
           if command_line.is_empty() {
             command_line.command = vars::get(name);
           } else {
@@ -67,6 +67,10 @@ impl CommandLine {
 
   pub fn path(&self) -> Option<String> {
     which(&self.command)
+  }
+
+  pub fn exist(&self) -> bool {
+    self.path().is_some()
   }
 
   pub fn args(&self) -> &Vec<String> {

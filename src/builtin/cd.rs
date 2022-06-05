@@ -15,7 +15,7 @@ impl CD {
 }
 
 impl BuiltIn for CD {
-  fn handler(&mut self, command_line: &CommandLine) -> i8 {
+  fn handler(&mut self, command_line: &CommandLine) -> u8 {
     let home = vars::get("HOME");
     let mut work_dir = PathBuf::from(vars::get_result("PWD").unwrap_or(home.clone()));
     let cwd = work_dir.clone();

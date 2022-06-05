@@ -12,7 +12,7 @@ impl Export {
 }
 
 impl BuiltIn for Export {
-  fn handler(&mut self, command_line: &CommandLine) -> i8 {
+  fn handler(&mut self, command_line: &CommandLine) -> u8 {
     for arg in command_line.args() {
       match arg.split_once("=") {
         Some((key, value)) => vars::set(key, value),

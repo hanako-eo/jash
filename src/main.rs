@@ -3,15 +3,16 @@ mod command_line;
 mod env;
 mod io;
 mod parser;
+mod process;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::process::{Command, self};
 
 use builtin::vars::{Export, UnSet};
 use builtin::{BuiltIn, Exit, CD, PWD};
 use command_line::{CommandLine, CommandModifier};
 use env::{system, vars};
+use process::Process;
 
 #[derive(Debug)]
 struct App {
@@ -21,7 +22,7 @@ struct App {
 impl App {
   fn new() -> Self {
     vars::create("PS1", "\x1b[1;34m\\w\x1b[0m $\n> ");
-    vars::set("$", process::id().to_string());
+    vars::set("$", std::process::id().to_string());
 
     let mut built_ins: HashMap<&str, Box<dyn BuiltIn>> = HashMap::new();
 
@@ -61,61 +62,50 @@ impl App {
       .replace(r"\W", if &pwd == "~" { &"~" } else { &current_folder })
   }
 
-  fn execute(&mut self, command_line: &CommandLine) -> i8 {
-    if command_line.is_empty(){
-      return vars::get("?").parse().unwrap_or(0) as i8
+  fn execute(&mut self, command_line: &CommandLine) -> u8 {
+    if command_line.is_empty() {
+      return vars::get("?").parse().unwrap_or(0) as u8
     }
 
-    if let Some(path) = command_line.path() {
-      return self.exec_process(command_line, path)
-    } else {
-      for (command, built_in) in &mut self.built_ins {
-        if command == &command_line.command() {
-          return built_in.handler(command_line)
-        }
-      }
+    match self.built_ins.get_mut(command_line.command().as_str()) {
+      Some(built_in) => return built_in.handler(command_line),
+      None => ()
     }
+
+    if command_line.exist() {
+      return self.exec_process(command_line)
+    }
+    
     eprintln!("{}: command not found", command_line.command());
     127
   }
 
-  fn exec_process(&mut self, command_line: &CommandLine, path: String) -> i8 {
-    let r = Command::new(path)
-      .args(command_line.args())
-      .env_clear()
-      .envs(vars::all())
-      .current_dir(vars::get("PWD"))
-      .spawn();
+  fn exec_process(&mut self, command_line: &CommandLine) -> u8 {
+    let mut process = Process::new(command_line);
+    process.spawn(None, None, None);
 
-    if let Ok(mut process) = r {
-      if let CommandModifier::Background(next) = command_line.modifier() {
-        match next {
-          Some(next_command) => return self.execute(next_command.as_ref()),
-          None => ()
-        };
-      } else {
-        return match process.wait() {
-          Ok(status) => {
-            let code = status.code().unwrap_or(1) as i8;
-            match command_line.modifier() {
-              CommandModifier::And(next_command) =>
-                return if code == 0 {
-                  self.execute(next_command.as_ref())
-                } else {
-                  code
-                },
-              CommandModifier::Or(next_command) =>
-                return if code > 0 {
-                  self.execute(next_command.as_ref())
-                } else {
-                  code
-                },
-              CommandModifier::Then(next_command) => self.execute(next_command.as_ref()),
-              _ => code
-            }
+    if let CommandModifier::Background(next) = command_line.modifier() {
+      match next {
+        Some(next_command) => return self.execute(next_command.as_ref()),
+        None => ()
+      };
+    } else {
+      let code = process.wait();
+      return match command_line.modifier() {
+        CommandModifier::And(next_command) =>
+          return if code == 0 {
+            self.execute(next_command.as_ref())
+          } else {
+            code
           },
-          Err(_) => 127
-        }
+        CommandModifier::Or(next_command) =>
+          return if code > 0 {
+            self.execute(next_command.as_ref())
+          } else {
+            code
+          },
+        CommandModifier::Then(next_command) => self.execute(next_command.as_ref()),
+        _ => code
       }
     }
     0
